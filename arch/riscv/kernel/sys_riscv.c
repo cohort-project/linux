@@ -8,6 +8,7 @@
 #include <linux/syscalls.h>
 #include <asm/unistd.h>
 #include <asm/cacheflush.h>
+#include <asm/io.h>
 
 static long riscv_sys_mmap(unsigned long addr, unsigned long len,
 			   unsigned long prot, unsigned long flags,
@@ -68,6 +69,8 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 
 SYSCALL_DEFINE0(riscv_conf_iommu) {
     uint64_t base = (uint64_t)(current->mm->pgd);
-    printk("PT base address %p\n", base);
-    return base;
+    printk("PT base address %llx\n", base);
+    uint64_t phy_base = virt_to_phys((void *)base);
+    printk("PT physical base address %lx\n", base);
+    return phy_base;
 }
