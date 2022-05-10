@@ -78,7 +78,7 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 // }
 
 #ifdef CONFIG_COHORT_MMU
-SYSCALL_DEFINE0(riscv_conf_iommu, uintptr_t, base_addr) {
+SYSCALL_DEFINE1(riscv_conf_iommu, uintptr_t, base_addr) {
     // save page table base address
 	base_addr = (uint64_t)(current->mm->pgd);
     printk("Cohort MMU: PT base address %x\n", (uint64_t)current->mm->pgd);
