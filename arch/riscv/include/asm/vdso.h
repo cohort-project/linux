@@ -29,6 +29,10 @@ struct vdso_data {
 
 asmlinkage long sys_riscv_flush_icache(uintptr_t, uintptr_t, uintptr_t);
 
+#ifdef CONFIG_COHORT_MMU
 asmlinkage void sys_riscv_conf_iommu(uintptr_t);
+#else
+asmlinkage void sys_riscv_conf_iommu(void);
+#endif
 
 #endif /* _ASM_RISCV_VDSO_H */

@@ -69,14 +69,6 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 	return 0;
 }
 
-// SYSCALL_DEFINE0(riscv_conf_iommu) {
-//     uint64_t base = (uint64_t)(current->mm->pgd);
-//     printk("PT base address %llx\n", base);
-//     uint64_t phy_base = virt_to_phys((void *)base);
-//     printk("PT physical base address %lx\n", base);
-//     return phy_base;
-// }
-
 #ifdef CONFIG_COHORT_MMU
 SYSCALL_DEFINE1(riscv_conf_iommu, uintptr_t, base_addr) {
     // save page table base address
@@ -97,4 +89,12 @@ SYSCALL_DEFINE1(riscv_conf_iommu, uintptr_t, base_addr) {
 
     return 0;
  }
+#else
+SYSCALL_DEFINE0(riscv_conf_iommu) {
+    uint64_t base = (uint64_t)(current->mm->pgd);
+    printk("PT base address %llx\n", base);
+    uint64_t phy_base = virt_to_phys((void *)base);
+    printk("PT physical base address %lx\n", base);
+    return phy_base;
+}
 #endif
