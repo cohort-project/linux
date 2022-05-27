@@ -9,6 +9,7 @@
 #define _ASM_RISCV_VDSO_H
 
 #include <linux/types.h>
+#include "../drivers/cohort_mmu/cohort_types.h"
 
 struct vdso_data {
 };
@@ -30,7 +31,8 @@ struct vdso_data {
 asmlinkage long sys_riscv_flush_icache(uintptr_t, uintptr_t, uintptr_t);
 
 #ifdef CONFIG_COHORT_MMU
-asmlinkage void sys_riscv_conf_iommu(uintptr_t);
+asmlinkage void sys_riscv_conf_iommu(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+asmlinkage void sys_riscv_conf_iommu_exit(void);
 #else
 asmlinkage void sys_riscv_conf_iommu(void);
 #endif

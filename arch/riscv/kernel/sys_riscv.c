@@ -10,7 +10,7 @@
 #include <asm/cacheflush.h>
 #include <asm/io.h>
 #include <linux/sched/mm.h>
-#include "../drivers/cohort_mmu/cohort_mmu.h"
+#include "../drivers/cohort_mmu/cohort_types.h"
 
 static long riscv_sys_mmap(unsigned long addr, unsigned long len,
 			   unsigned long prot, unsigned long flags,
@@ -70,31 +70,34 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 }
 
 #ifdef CONFIG_COHORT_MMU
-SYSCALL_DEFINE1(riscv_conf_iommu, uintptr_t, base_addr) {
-    // save page table base address
-	base_addr = (uint64_t)(current->mm->pgd);
-    printk("Cohort MMU: PT base address %x\n", (uint64_t)current->mm->pgd);
+SYSCALL_DEFINE6(riscv_conf_iommu, uint64_t, c_head, uint64_t, c_meta, uint64_t, c_tail, 
+								  uint64_t, p_tail, uint64_t, p_meta, uint64_t, p_head) {
+
+	printk("Cohort MMU syscall entered! \n");
 
 	// call a driver for the curr proc
-	struct mm_struct *mm; 
-
-	mm = get_task_mm(current);
-
-	printk("Cohort MMU: process MM returned! \n");
-
-	// --> Is this a pointer being passed or a whole structure btw?
-	cohort_mn_register(mm);
+	cohort_mn_register(c_head, c_meta, c_tail, p_tail, p_meta, p_head);
 
 	printk("Cohort MMU successfully registered! \n");
+	
+    return 0;
+}
+
+SYSCALL_DEFINE0(riscv_conf_iommu_exit) {
+    printk("Cohort MMU EXIT syscall entered \n");
+	cohort_mn_exit();
+
+	printk("Cohort MMU EXIT syscall successfully to exit \n");
 
     return 0;
- }
+}
+
 #else
 SYSCALL_DEFINE0(riscv_conf_iommu) {
     uint64_t base = (uint64_t)(current->mm->pgd);
     printk("PT base address %llx\n", base);
     uint64_t phy_base = virt_to_phys((void *)base);
-    printk("PT physical base address %lx\n", base);
+    printk("PT physical base address %llx\n", phy_base);
     return phy_base;
 }
 #endif
