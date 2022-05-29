@@ -24,11 +24,18 @@ MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Nazerke Turtayeva <nturtayeva@ucsb.edu>");
 
 // FLUSH TLB
-void dec_flush_tlb (struct mmu_notifier *mn,
-				                            struct mm_struct *mm,
-				                            unsigned long start, unsigned long end) {
+// void dec_flush_tlb (struct mmu_notifier *mn,
+// 				                            struct mm_struct *mm,
+// 				                            unsigned long start, unsigned long end); 
+											
+// void dec_flush_tlb(struct mmu_notifier *mn, struct mm_struct *mm);
+
+void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
+				                            unsigned long start, unsigned long end){
    PRINTBT
+   
    uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[0]); // -->confugure to include the tile smhow
+   printk("Dec flush tlb results: %llx", res);
 }
 
 static int irq;
