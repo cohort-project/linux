@@ -75,7 +75,7 @@ static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
 };
 
 void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
-						uint64_t p_tail, uint64_t p_meta, uint64_t p_head){
+			   			uint64_t p_head, uint64_t p_meta, uint64_t p_tail){
 	PRINTBT
 	pr_info("Cohort MMU register fun-n entered! \n");
 
@@ -103,7 +103,7 @@ void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
 
 	// Fill the fifo_ctrl_t struct members
 	// uint32_t cohort_st = cohort_on(c_head, c_meta, c_tail, p_tail, p_meta, p_head);
-	cohort_on(c_head, c_meta, c_tail, p_tail, p_meta, p_head);
+	cohort_on(c_head, c_meta, c_tail, p_head, p_meta, p_tail);
 
 	pr_info("Cohort MMU: cohort_on fun-n returned with status! \n");
 

@@ -94,11 +94,11 @@ void cohort_off(void);
 
 //TODO: 128 bits are not supported, see https://github.com/rust-lang/rust/issues/54341
 
-void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool is_consumer)
+void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool cohort_to_sw)
 {
     PRINTBT
 
-    if (is_consumer) {
+    if (cohort_to_sw) {
         baremetal_write( 0, 3, head_ptr);
         baremetal_write( 0, 4, meta_ptr);
         baremetal_write( 0, 5, tail_ptr);
@@ -140,14 +140,14 @@ uint64_t uncached_read(uint32_t tile, uint64_t addr){
 }
 
 void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
-			   uint64_t p_tail, uint64_t p_meta, uint64_t p_head)
+			   uint64_t p_head, uint64_t p_meta, uint64_t p_tail)
 {
     PRINTBT
 
 	printk("Before input fifo start\n");
-	fifo_start(c_head, c_meta, c_tail, 1);
+	fifo_start(c_tail, c_meta, c_head, 0);
 	printk("Before output fifo start\n");
-	fifo_start(p_tail, p_meta, p_head, 0);
+	fifo_start(p_head, p_meta, p_tail, 1);
 
     // ---> clarify this acc interface
     // void *acc_address = memalign(128, 128);
@@ -162,7 +162,8 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
     __sync_synchronize();
 
 	// sleep(4);
-    msleep(4000);
+    msleep(2000);
+    printk("after cohort on\n");
 
     // clear counter and turn on the monitor - later might move to user mode
 	unsigned long long int write_value = 11;
@@ -180,7 +181,8 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
     baremetal_write(0, 7, write_value);
 
 	// sleep(4);
-    msleep(4000);
+    msleep(2000);
+    printk("after cohort start\n");
 }
 
 void cohort_off(void)
