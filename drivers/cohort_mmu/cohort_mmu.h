@@ -103,7 +103,7 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
         baremetal_write( 0, 4, meta_ptr);
         baremetal_write( 0, 5, tail_ptr);
     } else { 
-        baremetal_write( 0, 0, head_ptr); // this is actually tail for producer
+        baremetal_write( 0, 0, head_ptr); // this is actually tail for consumer
         baremetal_write( 0, 1, meta_ptr);
         baremetal_write( 0, 2, tail_ptr); 
     }
@@ -112,24 +112,35 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
 
 void baremetal_write(uint32_t tile, uint64_t addr, uint64_t value){
 	PRINTBT
-	uint32_t tileno = tile*2+1;
-	// uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
-	uint64_t write_addr = (addr*8) | base[tile]; 
-	
+	uint32_t tileno = (tile)*2+1;
+	uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
+    void * vaddr = ioremap(base_dream, PG_SIZE);
+
+	// uint64_t write_addr = (addr*8) | base[tileno]; 
+	uint64_t write_addr = (addr*8) | (uint64_t)vaddr; 
+
     #ifdef PRI
 	printk("Target DREAM addr: %lx, write config data: %lx\n", write_addr, (uint64_t)value);
     #endif
 
-	iowrite64(value, (void*) write_addr);
+	// iowrite64(value, (void*) write_addr);
+    // writel(value, write_addr);
+    iowrite64(value, write_addr);
+    iounmap(vaddr);
 }
 
 uint64_t uncached_read(uint32_t tile, uint64_t addr){
 	PRINTBT
 	uint32_t tileno = tile*2+1;
-	// uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
-	uint64_t read_addr = (addr*8) | base[tile]; 
+	uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
+    void * vaddr = ioremap(base_dream, PG_SIZE);
+
+	// uint64_t read_addr = (addr*8) | base[tile]; 
+	uint64_t read_addr = (addr*8) | (uint64_t) vaddr; 
 	uint64_t read_val;
 
+	// read_val = ioread64((void*) read_addr);
+	// read_val = readl((void*) read_addr);
 	read_val = ioread64((void*) read_addr);
 	
     #ifdef PRI
@@ -162,7 +173,7 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
     __sync_synchronize();
 
 	// sleep(4);
-    msleep(2000);
+    // msleep(2000);
     printk("after cohort on\n");
 
     // clear counter and turn on the monitor - later might move to user mode
@@ -181,8 +192,8 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
     baremetal_write(0, 7, write_value);
 
 	// sleep(4);
-    msleep(2000);
-    printk("after cohort start\n");
+    // msleep(2000);
+    printk("after cohort start 2\n");
 }
 
 void cohort_off(void)

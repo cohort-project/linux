@@ -62,10 +62,10 @@ static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
     
 	if (res != 0){
         uint32_t * ptr = (uint32_t *)(res & 0xFFFFFFFFF0);
-        printk("T%p\n",ptr);
-        printk("T%d",*ptr);
+        printk("T%llx\n",ptr);
+        // printk("T%d",*ptr);
         dec_resolve_page_fault(0, (res & 0xF));
-        printk("R",res);
+        printk("R\n",res);
         //printk("R\n");
 		return IRQ_HANDLED;
     } else{

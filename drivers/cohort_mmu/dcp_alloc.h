@@ -29,7 +29,7 @@ uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
         #endif
         
         void * vaddr = ioremap((unsigned long)base_addr[i], PG_SIZE);
-
+        
         base_addr[i] = (uint64_t) vaddr;
 
         #ifdef PRI
