@@ -168,7 +168,7 @@ void cohort_mn_exit(void){
 
 	pr_info("---> Cohort and monitors stopped\n");
 
-	int release_res = dealloc_tile(base, mmub);
+	int release_res = dealloc_tiles();
 
 	if (release_res == 0){
 		pr_info("All tiles successfully released!\n");

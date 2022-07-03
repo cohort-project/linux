@@ -42,13 +42,14 @@ uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
     return tiles;
 }
 
-uint64_t dealloc_tile(uint64_t * base, uint64_t * mmub) {
+uint64_t dealloc_tiles(void) {
     PRINTBT
     uint64_t i;
 
     printk("Current num of tiles: %d\n", num_tiles);
     printk("Current base: %llx\n",  sizeof(base));
     printk("Current mmub: %llx\n",  sizeof(mmub));
+    printk("Current base dream: %llx\n",  sizeof(base_dream));
 
     for (i = 0; i < num_tiles; i++){
         // printk("Before release mem\n");
@@ -57,6 +58,7 @@ uint64_t dealloc_tile(uint64_t * base, uint64_t * mmub) {
         // printk("After release mem\n");
         iounmap(base[i]);
         iounmap(mmub[i]);
+        iounmap(base_dream[i]);
 
         #ifdef PRI
         printk("Tile %d's page successfully released!\n", i);
