@@ -41,6 +41,7 @@ static uint64_t fpid[MAX_QUEUES];
 static uint64_t fcid[MAX_QUEUES];
 static uint64_t base[MAX_TILES];
 static uint64_t mmub[MAX_TILES];
+static uint64_t base_dream[MAX_TILES];
 volatile static int result = 0;
 
 #include "dcp_alloc.h"
@@ -233,6 +234,7 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
     tileno = (i/WIDTH)*2+1;
     base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y);
     mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
+    base_dream[i] = BASE_DREAM   | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
   }
   allocated_tiles = num_tiles;
 
@@ -243,6 +245,8 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   // ALLOCATE AND RESET TILE
   allocated_tiles = (uint64_t)alloc_tile(num_tiles,base);
   allocated_tiles = (uint64_t)alloc_tile(num_tiles,mmub);
+  allocated_tiles = (uint64_t)alloc_tile(num_tiles,base_dream);
+
   if (!allocated_tiles) return 0;
   // IF VIRTUAL MEMORY, THEN GET THE PAGE TABLE BASE
   

@@ -112,35 +112,21 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
 
 void baremetal_write(uint32_t tile, uint64_t addr, uint64_t value){
 	PRINTBT
-	uint32_t tileno = (tile)*2+1;
-	uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
-    void * vaddr = ioremap(base_dream, PG_SIZE);
-
-	// uint64_t write_addr = (addr*8) | base[tileno]; 
-	uint64_t write_addr = (addr*8) | (uint64_t)vaddr; 
+    uint64_t write_addr = (addr*8) | (uint64_t)base_dream[tile]; 
 
     #ifdef PRI
 	printk("Target DREAM addr: %lx, write config data: %lx\n", write_addr, (uint64_t)value);
     #endif
 
-	// iowrite64(value, (void*) write_addr);
-    // writel(value, write_addr);
     iowrite64(value, write_addr);
-    iounmap(vaddr);
 }
 
 uint64_t uncached_read(uint32_t tile, uint64_t addr){
 	PRINTBT
-	uint32_t tileno = tile*2+1;
-	uint64_t base_dream = 0xe100B00000ULL | ((tileno) << 28) | ((0) << 24); 
-    void * vaddr = ioremap(base_dream, PG_SIZE);
+    uint64_t read_addr = (addr*8) | (uint64_t) base_dream[tile]; 
 
-	// uint64_t read_addr = (addr*8) | base[tile]; 
-	uint64_t read_addr = (addr*8) | (uint64_t) vaddr; 
 	uint64_t read_val;
 
-	// read_val = ioread64((void*) read_addr);
-	// read_val = readl((void*) read_addr);
 	read_val = ioread64((void*) read_addr);
 	
     #ifdef PRI
