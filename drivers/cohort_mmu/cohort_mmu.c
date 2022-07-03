@@ -58,7 +58,7 @@ static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
 	PRINTBT
 	// --> check for the similarity
 	uint64_t res = dec_get_tlb_fault(0);
-    pr_info("Get TLB fault %d and show irq %d\n", res, irq);
+    pr_info("Get Page Fault %llx and show irq %d\n", res, irq);
     
 	if (res != 0){
         uint32_t * ptr = (uint32_t *)(res & 0xFFFFFFFFF0);
@@ -72,6 +72,9 @@ static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
 		// --> check for the right error message
 		return -1;
 	}
+
+	return IRQ_HANDLED;
+	
 };
 
 void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
@@ -99,6 +102,8 @@ void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
 	// uint32_t init_st = init_tile(num);
 	init_tile(num);
 
+	baremetal_write(0, 6, c_meta + 128);
+ 
 	pr_info("Cohort MMU: init fun-n returned with status! \n");
 
 	// Fill the fifo_ctrl_t struct members

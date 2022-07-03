@@ -42,7 +42,7 @@
 #endif
 
 #ifndef WAIT_COUNTER_VAL 
-#define WAIT_COUNTER_VAL 128
+#define WAIT_COUNTER_VAL 0x10
 #endif
 
 #ifndef SERIALIZATION_VAL
@@ -158,38 +158,49 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
 	printk("Before input fifo start\n");
 	fifo_start(c_tail, c_meta, c_head, 0);
 	printk("Before output fifo start\n");
-	fifo_start(p_head, p_meta, p_tail, 1);
-
-    // ---> clarify this acc interface
-    // void *acc_address = memalign(128, 128);
-    // memset(acc_address, 0, 128);
+	fifo_start(p_head, p_meta, p_tail, 1);    
 
 	// printk("Before acc baremetal\n");
     // baremetal_write(0, 6, (uint64_t) acc_address);
 
     // turn on the monitor
     // don't lower reset, but turn on and clear the monitor
-    baremetal_write(0, 7, 6);
-    __sync_synchronize();
 
-	// sleep(4);
-    // msleep(2000);
-    printk("after cohort on\n");
-
-    // clear counter and turn on the monitor - later might move to user mode
-	unsigned long long int write_value = 11;
-    unsigned long long int serialization_value = SERIALIZATION_VAL;
-    unsigned long long int deserialization_value = DESERIALIZATION_VAL;
-    unsigned long long int wait_counter = WAIT_COUNTER_VAL;
-    unsigned long long int backoff_counter = 0x800;
+    uint64_t write_value = 6;
+    uint64_t serialization_value = 1;
+    uint64_t deserialization_value = 1;
+    uint64_t wait_counter = 0x100;
+    uint64_t backoff_counter = 0x800;
 
     write_value |= backoff_counter << 48;
     write_value |= serialization_value << 32;
     write_value |= deserialization_value << 16;
     write_value |= wait_counter << 4;
-    __sync_synchronize();
 
     baremetal_write(0, 7, write_value);
+
+    printk("write value is %lx\n", write_value);
+
+    __sync_synchronize();
+	
+    // sleep(4);
+    // msleep(2000);
+    printk("after cohort on\n");
+
+    // clear counter and turn on the monitor - later might move to user mode
+	unsigned long long int write_value_mon = 11;
+    unsigned long long int serialization_value_mon = SERIALIZATION_VAL;
+    unsigned long long int deserialization_value_mon = DESERIALIZATION_VAL;
+    unsigned long long int wait_counter_mon = WAIT_COUNTER_VAL;
+    unsigned long long int backoff_counter_mon = 0x800;
+
+    write_value_mon |= backoff_counter_mon << 48;
+    write_value_mon |= serialization_value_mon << 32;
+    write_value_mon |= deserialization_value_mon << 16;
+    write_value_mon |= wait_counter_mon << 4;
+    __sync_synchronize();
+
+    baremetal_write(0, 7, write_value_mon);
 
 	// sleep(4);
     // msleep(2000);

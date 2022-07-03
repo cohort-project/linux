@@ -1,4 +1,4 @@
-typedef uint32_t addr_t; // though we only use the lower 32 bits
+typedef uint64_t addr_t; // though we only use the lower 32 bits
 typedef uint32_t len_t; // length of fifo
 typedef len_t ptr_t;
 typedef uint32_t el_size_t; // element size width
@@ -9,9 +9,10 @@ typedef struct _fifo_ctrl_t fifo_ctrl_t;
 
 typedef struct __attribute__((__packed__)) {
     addr_t addr;
-    addr_t addr_upper;
     el_size_t size;
     len_t len;
+    char unused [112];
+    char acc_addr [128]; 
 } meta_t;
 
 typedef void (*fifo_push_func_t)(uint64_t element, fifo_ctrl_t* fifo_ctrl);
