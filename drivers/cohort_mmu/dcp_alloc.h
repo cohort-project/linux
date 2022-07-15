@@ -13,20 +13,20 @@
 uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
     PRINTBT
     uint64_t i;
-    struct resource *res;
-
-    __sync_synchronize();
+    struct resource *res;    
 
     for (i = 0; i < tiles; i++){
-        res = request_mem_region((unsigned long)base_addr[i], PG_SIZE, DRIVER_NAME);
-
-        if (res == NULL){
-            return i;
-        }
-
         #ifdef PRI
         printk("Physical address is %llx\n", (unsigned long)base_addr[i]);
         #endif
+
+        // res = request_mem_region((unsigned long)base_addr[i], PG_SIZE, DRIVER_NAME);
+
+        // if (res == NULL){
+        //     printk("Going to return\n");
+
+        //     return i;
+        // }
         
         void * vaddr = ioremap((unsigned long)base_addr[i], PG_SIZE);
         
@@ -37,8 +37,6 @@ uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
         #endif
     }
 
-    __sync_synchronize();
-
     return tiles;
 }
 
@@ -46,16 +44,16 @@ uint64_t dealloc_tiles(void) {
     PRINTBT
     uint64_t i;
 
-    printk("Current num of tiles: %d\n", num_tiles);
-    printk("Current base: %llx\n",  sizeof(base));
-    printk("Current mmub: %llx\n",  sizeof(mmub));
-    printk("Current base dream: %llx\n",  sizeof(base_dream));
+    uint32_t tileno;
 
     for (i = 0; i < num_tiles; i++){
         // printk("Before release mem\n");
-        // release_mem_region((unsigned long)base, PG_SIZE);
-        // release_mem_region((unsigned long)mmub, PG_SIZE);
+        // tileno = (i/WIDTH)*2+1;
+        // release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
+        // release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
+        // release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
         // printk("After release mem\n");
+
         iounmap(base[i]);
         iounmap(mmub[i]);
         iounmap(base_dream[i]);

@@ -23,16 +23,6 @@
 #include "dcpn_compressed.h"
 #include "cohort_types.h"
 
-#define BYTE         8
-
-#define MAX_TILES    2
-#define BASE_MMU     0xe100A00000L
-#define TILE_X       1
-#define TILE_Y       1
-#define WIDTH        1 // --> clarify this
-#define FIFO         2 // --> clarify this
-#define COHORT_TILE  1  // x=1, y=0
-
 #ifndef PRODUCER_FIFO_LENGTH 
 #define PRODUCER_FIFO_LENGTH 32
 #endif
@@ -59,8 +49,8 @@
 
 // from dcp_alloc.h
 uint64_t alloc_tile(uint64_t tiles, uint64_t * base);
-uint64_t dealloc_tile(uint64_t * base, uint64_t * mmub);
-
+uint64_t dealloc_tiles(void);
+ 
 // from dcpn_compressed.h
 uint64_t dec_get_tlb_fault(uint64_t tile);
 // void dec_flush_tlb (struct mmu_notifier *mn,
@@ -145,9 +135,6 @@ void cohort_on(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
 	fifo_start(c_tail, c_meta, c_head, 0);
 	printk("Before output fifo start\n");
 	fifo_start(p_head, p_meta, p_tail, 1);    
-
-	// printk("Before acc baremetal\n");
-    // baremetal_write(0, 6, (uint64_t) acc_address);
 
     // turn on the monitor
     // don't lower reset, but turn on and clear the monitor
