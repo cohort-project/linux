@@ -34,6 +34,6 @@ struct _fifo_ctrl_t {
 };
 
 extern void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
-						       uint64_t p_tail, uint64_t p_meta, uint64_t p_head);
+						       uint64_t p_tail, uint64_t p_meta, uint64_t p_head, uint64_t acc_addr);
 
 extern void cohort_mn_exit(void);

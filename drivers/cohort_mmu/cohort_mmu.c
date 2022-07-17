@@ -78,7 +78,7 @@ static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
 };
 
 void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
-			   			uint64_t p_head, uint64_t p_meta, uint64_t p_tail){
+			   			uint64_t p_head, uint64_t p_meta, uint64_t p_tail, uint64_t acc_addr){
 	PRINTBT
 	pr_info("Cohort MMU register fun-n entered! \n");
 
@@ -102,7 +102,7 @@ void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail,
 	// uint32_t init_st = init_tile(num);
 	init_tile(num);
 
-	baremetal_write(0, 6, c_meta + 128);
+	baremetal_write(0, 6, acc_addr);
  
 	pr_info("Cohort MMU: init fun-n returned with status! \n");
 

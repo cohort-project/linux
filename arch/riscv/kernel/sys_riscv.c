@@ -70,13 +70,12 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 }
 
 #ifdef CONFIG_COHORT_MMU
-SYSCALL_DEFINE6(riscv_conf_iommu, uint64_t, c_head, uint64_t, c_meta, uint64_t, c_tail, 
-								  uint64_t, p_head, uint64_t, p_meta, uint64_t, p_tail) {
+SYSCALL_DEFINE3(riscv_conf_iommu, uint64_t, c_head, uint64_t, p_head, uint64_t, acc_ptr) {
 
 	printk("Cohort MMU syscall entered! \n");
 
 	// call a driver for the curr proc
-	cohort_mn_register(c_head, c_meta, c_tail, p_head, p_meta, p_tail);
+	cohort_mn_register(c_head, c_head + 384, c_head + 768, p_head, p_head + 384, p_head + 768, acc_ptr);
 
 	printk("Cohort MMU successfully registered! \n");
 	
