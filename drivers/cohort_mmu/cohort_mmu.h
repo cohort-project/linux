@@ -104,9 +104,9 @@ void baremetal_write(uint32_t tile, uint64_t addr, uint64_t value){
 	PRINTBT
     uint64_t write_addr = (addr*8) | (uint64_t)base_dream[tile]; 
 
-    #ifdef PRI
-	printk("Target DREAM addr: %lx, write config data: %lx\n", write_addr, (uint64_t)value);
-    #endif
+    // #ifdef PRI
+	// printk("Target DREAM addr: %lx, write config data: %lx\n", write_addr, (uint64_t)value);
+    // #endif
 
     iowrite64(value, write_addr);
 }
@@ -119,9 +119,9 @@ uint64_t uncached_read(uint32_t tile, uint64_t addr){
 
 	read_val = ioread64((void*) read_addr);
 	
-    #ifdef PRI
-	printk("after ioread64 value = %llx, leaving uncached_read\n", read_val);
-    #endif
+    // #ifdef PRI
+	// printk("after ioread64 value = %llx, leaving uncached_read\n", read_val);
+    // #endif
 
     return read_val;
 }
