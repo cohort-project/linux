@@ -23,27 +23,13 @@
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Nazerke Turtayeva <nturtayeva@ucsb.edu>");
 
-// FLUSH TLB
-// void dec_flush_tlb (struct mmu_notifier *mn,
-// 				                            struct mm_struct *mm,
-// 				                            unsigned long start, unsigned long end); 
-											
-// void dec_flush_tlb(struct mmu_notifier *mn, struct mm_struct *mm);
-
-void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
-				                            unsigned long start, unsigned long end){
-   PRINTBT
-   
-   uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[0]); // -->confugure to include the tile smhow
-   printk("Dec flush tlb results: %llx", res);
-}
+/////////////
+// Structs //
+/////////////
 
 static int irq;
-
 static struct mm_struct *curr_mm;
-
 static const struct mmu_notifier_ops iommu_mn = {
-	// maple API is used
 	.invalidate_range       = dec_flush_tlb,
 };
 
@@ -51,67 +37,54 @@ static struct mmu_notifier mn = {
 	.ops = &iommu_mn,
 }; 
 
+//////////////////////////
+// Function Definitions //
+//////////////////////////
+
 // --> can we get a tile number from these codes?
 // --> tile arguments are fixed, change this later
 static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
-	// maple API is used
 	PRINTBT
-	// --> check for the similarity
+	pr_info("Cohort MMU Interrupt Entered!\n");
 	uint64_t res = dec_get_tlb_fault(0);
     pr_info("Get Page Fault %llx and show irq %d\n", res, irq);
     
 	if (res != 0){
         uint32_t * ptr = (uint32_t *)(res & 0xFFFFFFFFF0);
         printk("T%llx\n",ptr);
-        // printk("T%d",*ptr);
         dec_resolve_page_fault(0, (res & 0xF));
         printk("R\n",res);
-        //printk("R\n");
 		return IRQ_HANDLED;
     } else{
 		// --> check for the right error message
 		return -1;
-	}
-
-	return IRQ_HANDLED;
-	
+	}	
 };
 
-void cohort_mn_register(uint64_t c_head, uint64_t c_meta, uint64_t c_tail, 
-			   			uint64_t p_head, uint64_t p_meta, uint64_t p_tail, uint64_t acc_addr){
+void cohort_mn_register(uint64_t c_head, uint64_t p_head, uint64_t acc_addr){
 	PRINTBT
-	pr_info("Cohort MMU register fun-n entered! \n");
-
-	// Device regisration with MMU notifier
-	// extract curr process details
+	// Extract curr process details
 	struct mm_struct *mm; 
-
-	mm = get_task_mm(current);
-	
+	mm      = get_task_mm(current);
+	mn.mm   = mm;
 	curr_mm = mm;
-	mn.mm = mm;
 
-	pr_info("Cohort MMU: register fun called! \n");
+	// Register current process
 	int err = mmu_notifier_register(&mn, curr_mm);
-	pr_info("Cohort MMU: register fun-n returned with status %d! \n", err);
 
-	// Alloc tile and set TLB base
 	// ---> address from device tree here
 	uint32_t num = 1;
 
-	// uint32_t init_st = init_tile(num);
+	// Alloc tile and set TLB base
 	init_tile(num);
-
-	baremetal_write(0, 6, acc_addr);
  
-	pr_info("Cohort MMU: init fun-n returned with status! \n");
-
 	// Fill the fifo_ctrl_t struct members
-	// uint32_t cohort_st = cohort_on(c_head, c_meta, c_tail, p_tail, p_meta, p_head);
-	cohort_on(c_head, c_meta, c_tail, p_head, p_meta, p_tail);
-
-	pr_info("Cohort MMU: cohort_on fun-n returned with status! \n");
-
+	cohort_on(c_head, p_head, acc_addr);
+	
+	// Open the comm-n with DEC queues to extract useful stats
+	dec_open_producer(0);
+	dec_open_consumer(0);
+	
 }
 EXPORT_SYMBOL(cohort_mn_register);
 
@@ -154,31 +127,20 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 void cohort_mn_exit(void){
 	PRINTBT
 
-	pr_info("---> Cohort MMU Driver Exit\n");
+	// Close the queues and extract numbers
+	dec_close_producer(0);
+	dec_close_consumer(0);
+	print_stats_fifos(1);
 
-	cohort_print_debug_monitors();
-    
-    cohort_print_monitors();
-
-	pr_info("---> Cohort debug and stat monitors printed above\n");
-
-    cohort_stop_monitors();
-	
     cohort_off();
-
-	pr_info("---> Cohort and monitors stopped\n");
 
 	int release_res = dealloc_tiles();
 
-	if (release_res == 0){
-		pr_info("All tiles successfully released!\n");
-	}else{
+	if (release_res != 0){
 		pr_info("Error at tile %d!\n", release_res - 1);
 	}
 
 	mmu_notifier_unregister(&mn, curr_mm);
-
-	pr_info("---> Cohort MMU Unregistered\n");
 
 }
 EXPORT_SYMBOL(cohort_mn_exit);
@@ -187,13 +149,7 @@ static int cohort_mmu_remove(struct platform_device *ofdev){
 	PRINTBT
 
 	struct device *dev = &ofdev->dev;
-	pr_info("---> Cohort MMU Driver Remove\n");
-
-	// pr_info("Cohort Device info(2):%s\n", dev->init_name);
-	dev_info(dev, "---> Cohort Device info(2):\n");
 	free_irq(irq, dev);
-
-	dev_info(dev, "---> Cohort MMU IRQ freed and leaving!\n");
 	
 	return 0;
 }

@@ -5,117 +5,157 @@ void assert(int condition){
     }
 }
 
-#ifndef PRI
-#define PRI
-#define PRINTBT printk("[PRI]%s\n", __func__);
-//#define PRI_DEBUG
-#endif
+// #ifndef PRINTBT
+// #define PRINTBT printk("[KERNEL] %s\n", __func__);
+// #endif
 
-// #define PRINTBT
+#define PRINTBT
 
-//#define DEC_DEBUG 1 // Do some runtime checks, but potentially slows
+// #ifndef PRINT_ADDR
+// #define PRINT_ADDR;
+// #endif
+
+// #ifndef PRI
+// #define PRI;
+// #endif
+
+// #define DEC_DEBUG 1 // Do some runtime checks, but potentially slows
+
 #define DEBUG_INIT assert(initialized);
 #define DEBUG_NOT_INIT assert(!initialized);
 
-#define BYTE         8
-#define TILE_X       28
-#define TILE_Y       24
-#define WIDTH        4
-#define FIFO         9
-#define BASE_MAPLE 0xe100800000
-#define BASE_SPD   0xe100900000
-#define BASE_MMU   0xe100A00000
-#define BASE_DREAM 0xe100B00000
-#define BASE_NIBBL 0xe100C00000
-
 #include "dec_decoupling.h"
-
-#define MAX_TILES 16
-#define INVALID_FIFO 65536
-
-//static variables
-static uint32_t num_tiles;
-static volatile uint32_t initialized = 0;
-static uint32_t queues_per_tile;
-static uint64_t fpid[MAX_QUEUES];
-static uint64_t fcid[MAX_QUEUES];
-static uint64_t base[MAX_TILES];
-static uint64_t mmub[MAX_TILES];
-static uint64_t base_dream[MAX_TILES];
-volatile static int result = 0;
-
 #include "dcp_alloc.h"
 
-#define DCP_SIZE_8  0
-#define DCP_SIZE_16 1
-#define DCP_SIZE_32 2
-#define DCP_SIZE_48 3
-#define DCP_SIZE_64 4
-#define DCP_SIZE_80 5
-#define DCP_SIZE_96 6
-#define DCP_SIZE_128 7
+//////////////////////////////////////
+//// OPEN/CLOSE PRODUCER/CONSUMER////
+/////////////////////////////////////
 
-///LIMA
-#define LOOP_TLOAD32 48 // Set Tload 32 bits
-#define LOOP_TLOAD64 49 // Set Tload 64 bits
-#define LOOP_PRODUCE 50 // Set Produce
-#define LOOP_LLC_32  52 // Set LLC load 32 bits
-#define LOOP_LLC_64  53 // Set LLC load 64 bits
-#define LOOP_PREFETCH 54 // Set Prefetch
-static uint64_t push_loop = (uint64_t)(14*BYTE);
+uint32_t dec_open_producer(uint64_t qid) {
+  PRINTBT
+  while (!initialized);
 
-//CONSUME/PRODUCE
-static uint64_t cons_addr = (uint64_t)(7*BYTE);
-static uint64_t prod_addr = (uint64_t)(8*BYTE);
-//TLOAD
-static uint64_t tload_addr32 = (uint64_t)(10*BYTE);
-static uint64_t tload_addr64 = (uint64_t)(11*BYTE);
-//ATOMICs
-static uint64_t add_addr  = (uint64_t)(32*BYTE);
-static uint64_t and_addr  = (uint64_t)(33*BYTE);
-static uint64_t or_addr   = (uint64_t)(34*BYTE);
-static uint64_t xor_addr  = (uint64_t)(35*BYTE);
-static uint64_t max_addr  = (uint64_t)(36*BYTE);
-static uint64_t maxu_addr = (uint64_t)(37*BYTE);
-static uint64_t min_addr  = (uint64_t)(38*BYTE);
-static uint64_t minu_addr = (uint64_t)(39*BYTE);
-static uint64_t swap_addr = (uint64_t)(40*BYTE);
-static uint64_t cas1_addr = (uint64_t)(41*BYTE);
-static uint64_t cas2_addr = (uint64_t)(42*BYTE);
-static uint64_t prefetch_addr = (uint64_t)(43*BYTE);
-static uint64_t llcload_addr32 = (uint64_t)(44*BYTE);
-static uint64_t llcload_addr64 = (uint64_t)(45*BYTE);
+#if defined(DEC_DEBUG)
+  assert(fpid[qid] == INVALID_FIFO);
+#endif
+#ifdef RES
+  printk("inside RES\n");
+  ATOMIC_OP(result, 1, add, w);
+#endif
+  uint32_t tile = qid/queues_per_tile;
+  uint64_t fifo = base[tile] | ( (qid%queues_per_tile) << FIFO);
+#ifdef PRI
+  printk("fifo:%d\n",fifo);
+#endif
+  uint32_t res_producer_conf; 
+  // connect can return 0 if queue does not exist or if it is already taken 
+  do {res_producer_conf = *(volatile uint64_t*)(producer_conf_addr | fifo);
+#ifdef PRI
+    printk("OPROD:%d and %d\n",res_producer_conf, producer_conf_addr);
+#endif
+  } while (res_producer_conf == 0);
+  fpid[qid] = fifo;
+  return 1;
+}
 
-//CONFIG
-static uint64_t destroy_tile_addr  = (uint64_t)(1*BYTE);
-//CONFIG B base
-static uint64_t base_addr32 = (uint64_t)(57*BYTE);
-static uint64_t base_addr64 = (uint64_t)(58*BYTE);
+uint32_t dec_open_consumer(uint64_t qid) {
+  PRINTBT
+  while (!initialized);
 
-//UNUSED
-static uint64_t fifoadd_addr  = (uint64_t)(6*BYTE);
-static uint64_t fifoclr_addr  = (uint64_t)(9*BYTE);
-static uint64_t stats_addr    = (uint64_t)(12*BYTE);
-static uint64_t debug_addr    = (uint64_t)(13*BYTE);
+#if defined(DEC_DEBUG)
+  assert(fcid[qid] == INVALID_FIFO);
+#endif
+#ifdef RES
+  ATOMIC_OP(result, 1, add, w);
+#endif
+  uint32_t tile = qid/queues_per_tile;
+  uint64_t fifo = base[tile] | ( (qid%queues_per_tile) << FIFO);
+#ifdef PRI
+  printk("fifo:%d\n",fifo);
+#endif
+  uint32_t res_consumer_conf; 
+  // connect can return 0 if queue does not exist or if it is already taken 
+  do {res_consumer_conf = *(volatile uint64_t*)(consumer_conf_addr | fifo); 
+#ifdef PRI
+    printk("OCONS:%d and %d\n",res_consumer_conf, consumer_conf_addr);
+#endif
+  } while (res_consumer_conf == 0);
+  fcid[qid] = fifo;
+  return 1;
+}
 
-//CONF TLB (only on the MMU page)
-static uint64_t tlb_flush            = (uint64_t)(13*BYTE);
-static uint64_t get_tlb_fault        = (uint64_t)(13*BYTE | 1 << FIFO);
-static uint64_t tlb_snoop_entry      = (uint64_t)(13*BYTE | 2 << FIFO);
-static uint64_t disable_tlb          = (uint64_t)(15*BYTE);
-static uint64_t conf_tlb_ptbase      = (uint64_t)(15*BYTE | 1 << FIFO);
-static uint64_t resolve_tlb_fault    = (uint64_t)(15*BYTE | 2 << FIFO);
-static uint64_t conf_tlb_mmpage      = (uint64_t)(15*BYTE | 6 << FIFO);
+uint32_t dec_close_producer(uint64_t qid) {
+  PRINTBT
+  uint64_t fifo = fpid[qid];
+#ifdef PRI
+  printk("fifo:%d\n",fifo);
+#endif
+#if defined(DEC_DEBUG)
+  assert(fifo !=INVALID_FIFO);
+  //fpid[qid] = INVALID_FIFO;
+#endif
+  // close can return 0 if the queue does not exist or it is not configured by the core
+  volatile uint32_t res_producer_conf = *(volatile uint64_t*)(producer_dconf_addr | fifo);
+#ifdef PRI
+  printk("CPROD:%d and %d\n",res_producer_conf, producer_dconf_addr);
+#endif
+#ifdef RES
+  ATOMIC_OP(result, -1, add, w);
+#endif
+  return res_producer_conf;
+}
 
-//CONNECT
-static uint64_t producer_conf_addr  = (uint64_t)(2*BYTE);
-static uint64_t consumer_conf_addr  = (uint64_t)(3*BYTE);
-static uint64_t producer_dconf_addr = (uint64_t)(4*BYTE);
-static uint64_t consumer_dconf_addr = (uint64_t)(5*BYTE);
+uint32_t dec_close_consumer(uint64_t qid) {
+  PRINTBT
+  uint64_t fifo = fcid[qid];
+#ifdef PRI
+  printk("fifo:%d\n",fifo);
+#endif
+#if defined(DEC_DEBUG)
+  assert(fifo !=INVALID_FIFO);
+  //fcid[qid] = INVALID_FIFO;
+#endif
+  volatile uint32_t res_consumer_conf = *(volatile uint64_t*)(consumer_dconf_addr | fifo);
+#ifdef PRI
+  printk("CCONS:%d and %d\n",res_consumer_conf, consumer_dconf_addr);
+#endif
+#ifdef RES
+  ATOMIC_OP(result, -1, add, w);
+#endif
+  return res_consumer_conf;
+}
 
-uint32_t dec_fifo_cleanup(uint32_t tile); 
-// void printDebug(uint64_t s);
-// uint64_t dec_fifo_debug(uint64_t tile, uint32_t id);
+//STATS
+uint64_t dec_fifo_stats(uint64_t qid, uint32_t stat, uint32_t* result) {
+  //TODO adapt to fetch only stat (key)
+  PRINTBT
+  volatile uint64_t res_stat = *(volatile uint64_t*)(stats_addr | fpid[qid]);
+  return res_stat;
+}
+
+void print_st(uint32_t id){
+  uint64_t stat = dec_fifo_stats(id,0,0);
+  stat = dec_fifo_stats(id,0,0);
+  uint32_t stat_c = (uint32_t) stat;
+  uint32_t stat_p = (stat >> 32);
+  stat = dec_fifo_stats(id,0,0);
+  stat_c += (uint32_t) stat;
+  stat_p += (stat >> 32);
+  if (stat_c > stat_p) stat = stat_c; else stat = stat_p;
+  printk("Execution time: %d\n",(int)stat);
+  stat = dec_fifo_stats(id,0,0);
+}
+
+void print_stats_fifos(uint32_t num){
+  uint32_t fifo_id;
+  for (fifo_id=0; fifo_id<num; fifo_id++)
+  {
+#ifdef PRI
+  printk("Stats for FIFO %d:\n", fifo_id);
+#endif
+  print_st(fifo_id);    
+  }
+}
 
 // TLB management
 // SNOOP TLB ENTRIES
@@ -130,11 +170,21 @@ uint64_t dec_get_tlb_fault(uint64_t tile) {
   uint64_t res = *(volatile uint64_t *)(get_tlb_fault | mmub[tile]);
   return res;
 }
-// // FLUSH TLB
+// FLUSH TLB
 uint64_t dec_def_flush_tlb (uint64_t tile) {
   PRINTBT
-   uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[tile]);
-   return res;
+  uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[tile]);
+  return res;
+}
+
+void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
+				                            unsigned long start, unsigned long end){
+  PRINTBT
+   // --> configure THIS to include the tile # smhow
+  uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[0]); 
+#ifdef PRI
+  printk("Dec flush tlb results:\n %llx", res);
+#endif
 }
 
 // CONFIG THE PAGE TABLE BASE OF THE TLB
@@ -155,9 +205,9 @@ void dec_set_tlb_ptbase(uint64_t tile, uint64_t conf_tlb_addr) {
 //     6:0   source id
   dec_def_flush_tlb(tile);
   *(volatile uint64_t*)(conf_tlb_ptbase | mmub[tile]) = (conf_tlb_addr & 0x0FFFFFFFULL) | 0x0003001020000000;
-  #ifdef PRI
+#ifdef PRI
   printk("Config MAPLE ptbase %llx\n", (uint64_t*)conf_tlb_addr);
-  #endif
+#endif
 }
 // SET TLB ENTRY THRU DCP and RESOLVE PAGE FAULT if lower bits are set
 void dec_set_tlb_mmpage(uint64_t tile, uint64_t conf_tlb_entry) {
@@ -175,12 +225,67 @@ void dec_disable_tlb(uint64_t tile) {
   *(volatile uint64_t*)(disable_tlb | mmub[tile]) = 0; 
 }
 
-///////////////////
-/// INIT TILE////
-//////////////////
+//CLEANUP
+uint32_t dec_fifo_cleanup(uint32_t tile) {
+  PRINTBT
+#if defined(DEC_DEBUG)
+  //DEBUG_INIT;
+#endif
+  uint32_t i;
+  for (i=0; i<tile;i++){
+    volatile uint32_t res_reset = *(volatile uint32_t*)(destroy_tile_addr | base[i]);
+#ifdef PRI
+    printk("RESET:%d\n",res_reset);
+#endif
+  }
+  return 1; //can this fail? security issues?
+}
+
+/////////////////
+/// INIT TILE ///
+/////////////////
+
+uint32_t config_loop_unit(int config_tiles, void * A, void * B, uint32_t op) {
+  uint64_t cr_conf_A = op*BYTE;
+  // The last bit of cr_conf_A indicates whether the B[i] load is coherent or not (1: coherent)
+  // Whether A[B[i]] is loaded coherently, depends on the 'op'
+  // LOOP_TLOAD32 48 (non coherent), vs  LOOP_LLC_32  52 (coherent)
+#ifndef COHERENT
+  #define COHERENT 1
+#endif
+
+#if COHERENT==1
+  cr_conf_A |= 1 << FIFO;
+#endif
+
+  if (A!=0 || B!=0){
+    int j;
+    for (j=0; j<config_tiles; j++){
+      *(volatile uint64_t*)(cr_conf_A | base[j]) = (uint64_t)A;
+      if (B!=0) *(volatile uint64_t*)(base_addr32 | base[j]) = (uint64_t)B;
+    }
+  }
+}
+
+void init_tile(uint32_t num){
+  PRINTBT
+  uint32_t size = DCP_SIZE_64;
+  if (num == 2) 
+    size=DCP_SIZE_64;
+  else if (num > 2)
+    size=DCP_SIZE_32;
+  uint32_t res = dec_fifo_init(num, size);
+}
+
+uint32_t dec_fifo_init(uint32_t count, uint32_t size) {
+  PRINTBT
+#ifdef SWDAE
+  dec2_fifo_init(1, DCP_SIZE_64);
+#endif
+  return dec_fifo_init_conf(count, size, 0, 0, 0);
+}
 
 // changing the return type of the function to include errors from uint32_t
-
 int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, uint32_t op) {
   PRINTBT
 #if defined(DEC_DEBUG)
@@ -195,32 +300,31 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
 #endif
 
   switch(size)
-    { /* 32x4, 64x2, 128x1 are the ones that make the most sense*/
-        case DCP_SIZE_8:
-        case DCP_SIZE_16:
-        case DCP_SIZE_32: 
-            queues_per_tile = 4;
-            break;
+  { /* 32x4, 64x2, 128x1 are the ones that make the most sense*/
+      case DCP_SIZE_8:
+      case DCP_SIZE_16:
+      case DCP_SIZE_32: 
+          queues_per_tile = 1;
+          break;
         
-        case DCP_SIZE_48: 
-        case DCP_SIZE_64: 
-            queues_per_tile = 2;
-            break;
-        /*
-        case DCP_SIZE_80: 
-        case DCP_SIZE_96:
-        case DCP_SIZE_128: 
-            queues_per_tile = 1;
-            queues_per_tile = 1;
-            break;
-        */
-        default:
-            queues_per_tile = 1;
-    }
+      case DCP_SIZE_48: 
+      case DCP_SIZE_64: 
+          queues_per_tile = 1;
+          break;
+      /*
+      case DCP_SIZE_80: 
+      case DCP_SIZE_96:
+      case DCP_SIZE_128: 
+          queues_per_tile = 1;
+          queues_per_tile = 1;
+          break;
+      */
+      default:
+          queues_per_tile = 1;
+  }
 
   uint32_t partial_tile = (count%queues_per_tile)>0;
   uint32_t entire_tiles = count/queues_per_tile;
-  // uint32_t num_tiles = entire_tiles + partial_tile;
   // ---> This should ideally be modified to the manycore case 
   num_tiles = entire_tiles + partial_tile;
 
@@ -229,41 +333,41 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
 
   uint32_t tileno;
   // SET THE LAYOUT OF TILES TO TARGET
-
-  for ( i = 0; i < num_tiles; i++){
+  uint32_t i;
+  for (i = 0; i < num_tiles; i++){
     tileno = (i/WIDTH)*2+1;
     base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y);
     mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
-    base_dream[i] = BASE_DREAM   | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
+    dream_base[i] = BASE_DREAM  | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
   }
   allocated_tiles = num_tiles;
 
-  #ifdef PRI
+#ifdef PRI
   printk("Num of tiles is: %d\n", num_tiles);
-  #endif
+#endif
 
   // ALLOCATE AND RESET TILE
   allocated_tiles = (uint64_t)alloc_tile(num_tiles,base);
   allocated_tiles = (uint64_t)alloc_tile(num_tiles,mmub);
-  allocated_tiles = (uint64_t)alloc_tile(num_tiles,base_dream);
+  allocated_tiles = (uint64_t)alloc_tile(num_tiles,dream_base);
 
   if (!allocated_tiles) return 0;
-  // IF VIRTUAL MEMORY, THEN GET THE PAGE TABLE BASE
   
   // save page table base address
 	uint64_t virt_base = (uint64_t)(current->mm->pgd);
-  #ifdef PRI
+
+#ifdef PRI
 	printk("Cohort MMU: PT base address %llx\n", virt_base);
-  #endif
+#endif
 
   conf_tlb_addr = virt_to_phys((void *)virt_base) >> 12; 
 
-  #ifdef PRI
+#ifdef PRI
   printk("Cohort MMU: conf tlb addr %llx\n", conf_tlb_addr);
-  #endif
+#endif
   
   if (conf_tlb_addr == -1 ) {
-      return -1;
+    return -1;
   }
 
   //printDebug(dec_fifo_debug(0,2));
@@ -276,65 +380,27 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
     // INIT_TILE: Target to allocate "len" queues per Tile
     uint64_t addr_maple = (base[k] | (size << FIFO));
     res_producer_conf = *(volatile uint32_t*)addr_maple;
-    #ifdef PRI
-    printk("Target MAPLE %d: address %llx\n", k,(uint32_t*)addr_maple);
+#ifdef PRI
+    printk("Target MAPLE %d: address %llx\n", k, (uint32_t*)addr_maple);
     printk("Target MAPLE %d: res %d, now config TLB\n", k, res_producer_conf);
-    #endif
+#endif
 
-    dec_set_tlb_ptbase(k,conf_tlb_addr);
+    dec_set_tlb_ptbase(k, conf_tlb_addr);
 
     k++;
-  } while (k<allocated_tiles && res_producer_conf > 0);
+  } while (k < allocated_tiles && res_producer_conf > 0);
   // count configured tiles
   uint32_t config_tiles = k;
   if (!res_producer_conf) config_tiles--;
 
-  uint64_t cr_conf_A = op*BYTE | 1 << FIFO;
-  int j;
-  if (A!=0) for ( j=0; j<config_tiles; j++){
-    *(volatile uint64_t*)(cr_conf_A | base[j]) = (uint64_t)A;
-    if (B!=0) *(volatile uint64_t*)(base_addr32 | base[j]) = (uint64_t)B;
-  }
-  //printDebug(dec_fifo_debug(0,2));
+  config_loop_unit(config_tiles, A,B,op);
 
   initialized = 1;
   uint32_t res = config_tiles*queues_per_tile;
-  #ifdef PRI
+
+#ifdef PRI
   printk("INIT: res 0x%08x\n", ((uint32_t)res) & 0xFFFFFFFF);
-  #endif
+#endif
+
   return res;
-}
-
-uint32_t dec_fifo_init(uint32_t count, uint32_t size) {
-  PRINTBT
-#ifdef SWDAE
-    dec2_fifo_init(1,DCP_SIZE_64);
-#endif
-    return dec_fifo_init_conf(count, size, 0, 0, 0);
-}
-
-//CLEANUP
-uint32_t dec_fifo_cleanup(uint32_t tile) {
-  PRINTBT
-#if defined(DEC_DEBUG)
-  //DEBUG_INIT;
-#endif
-  uint32_t i;
-  for (i=0; i<tile;i++){
-    volatile uint32_t res_reset = *(volatile uint32_t*)(destroy_tile_addr | base[i]);
-    #ifdef PRI
-      printk("RESET:%d\n",res_reset);
-    #endif
-  }
-  return 1; //can this fail? security issues?
-}
-
-void init_tile(uint32_t num){
-    PRINTBT
-    uint32_t size = DCP_SIZE_64;
-    if (num == 2) 
-        size=DCP_SIZE_64;
-    else if (num > 2)
-        size=DCP_SIZE_32;
-    uint32_t res = dec_fifo_init(num, size);
 }

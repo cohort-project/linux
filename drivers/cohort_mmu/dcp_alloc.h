@@ -1,6 +1,6 @@
 
-#ifndef __DCP_ALLOC_H
-#define __DCP_ALLOC_H
+#ifndef DCP_ALLOC_H
+#define DCP_ALLOC_H
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -20,13 +20,13 @@ uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
         printk("Physical address is %llx\n", (unsigned long)base_addr[i]);
         #endif
 
-        // res = request_mem_region((unsigned long)base_addr[i], PG_SIZE, DRIVER_NAME);
+        res = request_mem_region((unsigned long)base_addr[i], PG_SIZE, DRIVER_NAME);
 
-        // if (res == NULL){
-        //     printk("Going to return\n");
+        if (res == NULL){
+            printk("[ERROR] Going to return!\n");
 
-        //     return i;
-        // }
+            return i;
+        }
         
         void * vaddr = ioremap((unsigned long)base_addr[i], PG_SIZE);
         
@@ -47,23 +47,17 @@ uint64_t dealloc_tiles(void) {
     uint32_t tileno;
 
     for (i = 0; i < num_tiles; i++){
-        // printk("Before release mem\n");
-        // tileno = (i/WIDTH)*2+1;
-        // release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
-        // release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
-        // release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
-        // printk("After release mem\n");
+        tileno = (i/WIDTH)*2+1;
+        release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
+        release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
+        release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
 
         iounmap(base[i]);
         iounmap(mmub[i]);
-        iounmap(base_dream[i]);
-
-        #ifdef PRI
-        printk("Tile %d's page successfully released!\n", i);
-        #endif
+        iounmap(dream_base[i]);
     }
 
     return 0;
 }
 
-#endif
+#endif // DCP_ALLOC_H
