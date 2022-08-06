@@ -73,7 +73,6 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
         baremetal_write( 0, 2, head_ptr); 
     }
 
-    printk("[V2]PRODUCER=%d: hp %llx, mp %llx, tp %llx \n", cohort_to_sw, head_ptr, meta_ptr, tail_ptr);
     __sync_synchronize();
 
 }

@@ -47,10 +47,10 @@ uint64_t dealloc_tiles(void) {
     uint32_t tileno;
 
     for (i = 0; i < num_tiles; i++){
-        tileno = (i/WIDTH)*2+1;
-        release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
-        release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
-        release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y)), PG_SIZE);
+        tileno = i + 2;
+        release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);
+        release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);
+        release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);
 
         iounmap(base[i]);
         iounmap(mmub[i]);

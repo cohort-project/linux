@@ -335,10 +335,10 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   // SET THE LAYOUT OF TILES TO TARGET
   uint32_t i;
   for (i = 0; i < num_tiles; i++){
-    tileno = (i/WIDTH)*2+1;
-    base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y);
-    mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
-    dream_base[i] = BASE_DREAM  | ((tileno%WIDTH) << TILE_X) | ((0) << TILE_Y); 
+    tileno = i + 2;
+    base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y);
+    mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 
+    dream_base[i] = BASE_DREAM  | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 
   }
   allocated_tiles = num_tiles;
 
