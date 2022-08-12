@@ -17,6 +17,7 @@
  */
 
 #define DRIVER_NAME "cohort_mmu"
+#define MAX_COHORT_TILE 2
 
 #include "cohort_mmu.h"
 
@@ -27,7 +28,7 @@ MODULE_AUTHOR("Nazerke Turtayeva <nturtayeva@ucsb.edu>");
 // Structs //
 /////////////
 
-static int irq;
+static int irq[MAX_COHORT_TILE];
 static struct mm_struct *curr_mm;
 static const struct mmu_notifier_ops iommu_mn = {
 	.invalidate_range       = dec_flush_tlb,
@@ -90,33 +91,49 @@ EXPORT_SYMBOL(cohort_mn_register);
 
 static int cohort_mmu_probe(struct platform_device *ofdev)
 {	
-	pr_info("---> Cohort MMU Driver Probe v1.7 entered!\n");
+	pr_info("---> Cohort MMU Driver Probe v1.7 entered! %s\n", ofdev->resource->name);
 
 	struct device *dev = &ofdev->dev;
 	
 	dev_info(dev, "---> Cohort Device Structure extracted!\n");
 
 	/* Get IRQ for the device */
-	struct resource *res;
-	res = platform_get_resource(ofdev, IORESOURCE_IRQ, 0);
-	if (!res) {
-		dev_err(dev, "---> no IRQ found\n");
-		return -1;
-	}
+	// struct resource *res;
+	// res = platform_get_resource(ofdev, IORESOURCE_IRQ, 0);
+	// if (!res) {
+	// 	dev_err(dev, "---> no IRQ found\n");
+	// 	return -1;
+	// }
 
-	dev_info(dev, "---> Cohort IRQ res name: %s\n", res->name);
+	// dev_info(dev, "---> Cohort IRQ res name: %s\n", res->name);
 
-	irq = res->start;
+	uint32_t irq_cnt = of_property_count_u32_elems(dev->of_node, "interrupts");
+	pr_info("IRQ Cnt: %d\n", irq_cnt);
 
-	// listen for interrupts for a page fault
+	// --> try using this function after of_property_count_u32:
+	// platform_irq_count
+
 	int retval;
-	retval = request_irq(irq, cohort_mmu_interrupt, 0, dev_name(dev), dev);
 
-	dev_info(dev, "---> Cohort IRQ return value: %d\n", retval);
+	uint32_t i;
 
-	if (retval < 0){
-		dev_err(dev, "---> Can't request IRQ with retval: %d\n", retval);
-		return retval;
+	for (i = 0; i < irq_cnt; i++){
+		irq[i] = platform_get_irq(ofdev, i);
+		pr_info("IRQ line: %d\n", irq[i]);
+		if (irq[i] < 0) {
+			dev_err(dev, "---> no IRQ found\n");
+			return -1;
+		}
+
+		// listen for interrupts for a page fault
+		retval = request_irq(irq[i], cohort_mmu_interrupt, 0, dev_name(dev), dev);
+
+		dev_info(dev, "---> Cohort IRQ return value: %d\n", retval);
+
+		if (retval < 0){
+			dev_err(dev, "---> Can't request IRQ with retval: %d\n", retval);
+			return retval;
+		}
 	}
 
 	dev_info(dev, "---> Cohort Probe is successfully launched!\n");
@@ -157,6 +174,7 @@ static int cohort_mmu_remove(struct platform_device *ofdev){
 /* Match table for OF platform binding */
 static const struct of_device_id cohort_of_match[] = {
 	{ .compatible = "ucsbarchlab,cohort-0.0.a", },
+	// { .compatible = "ucsbarchlab,cohort-0.0.1", },
     { /* end of list */ },
 };
 MODULE_DEVICE_TABLE(of, cohort_of_match);
