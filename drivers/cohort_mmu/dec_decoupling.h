@@ -8,7 +8,7 @@
 #define BYTE         8
 #define TILE_X       28
 #define TILE_Y       24
-#define WIDTH        4
+#define WIDTH        2
 #define FIFO         9
 #define BASE_MAPLE 0xe100800000
 #define BASE_SPD   0xe100900000
@@ -107,8 +107,8 @@ void print_stats_fifos(uint32_t num);
 uint64_t dec_snoop_tlb_entry(uint64_t tile);
 uint64_t dec_get_tlb_fault(uint64_t tile);
 uint64_t dec_def_flush_tlb (uint64_t tile);
-void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
-				                            unsigned long start, unsigned long end);
+int invalidate_tlb_start (struct mmu_notifier *mn, const struct mmu_notifier_range *range);
+void invalidate_tlb_end (struct mmu_notifier *mn, const struct mmu_notifier_range *range);					
 
 void dec_set_tlb_mmpage(uint64_t tile, uint64_t conf_tlb_entry);
 void dec_set_tlb_mmpage(uint64_t tile, uint64_t conf_tlb_entry);

@@ -4,7 +4,6 @@
 #include <linux/mmu_notifier.h>
 #include <linux/platform_device.h>
 #include <linux/mod_devicetable.h>
-#include <linux/delay.h>
 #include <linux/mm_types.h>
 #include <linux/profile.h>
 #include <linux/module.h>
@@ -19,6 +18,7 @@
 #include <linux/skbuff.h>
 #include <linux/ioport.h> 
 #include <asm-generic/io.h> 
+#include <linux/of.h>
 
 #include "dcpn_compressed.h"
 
@@ -45,8 +45,8 @@ uint64_t dealloc_tiles(void);
 // from dcpn_compressed.h
 uint64_t dec_get_tlb_fault(uint64_t tile);
 void dec_resolve_page_fault(uint64_t tile, uint64_t conf_tlb_entry);
-void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
-				                            unsigned long start, unsigned long end);
+int invalidate_tlb_start (struct mmu_notifier *mn, const struct mmu_notifier_range *range);
+void invalidate_tlb_end (struct mmu_notifier *mn, const struct mmu_notifier_range *range);
 
 // Cohort's Kernel API
 void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool cohort_to_sw);
@@ -124,7 +124,7 @@ void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr)
     // write_value |= serialization_value << 32;
     // write_value |= deserialization_value << 16;
     // write_value |= wait_counter << 4;
-
+    // printk("d\n");
     baremetal_write(0, 7, write_value);
     __sync_synchronize();
 	
@@ -140,8 +140,9 @@ void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr)
     write_value_mon |= deserialization_value_mon << 16;
     write_value_mon |= wait_counter_mon << 4;
 
+    // printk("d\n");
     baremetal_write(0, 7, write_value_mon);
-
+    // printk("d\n");
 }
 
 void cohort_off(void)

@@ -21,7 +21,7 @@ uint64_t alloc_tile(uint64_t tiles, uint64_t * base_addr) {
         #endif
 
         res = request_mem_region((unsigned long)base_addr[i], PG_SIZE, DRIVER_NAME);
-
+        
         if (res == NULL){
             printk("[ERROR] Going to return!\n");
 
@@ -47,7 +47,7 @@ uint64_t dealloc_tiles(void) {
     uint32_t tileno;
 
     for (i = 0; i < num_tiles; i++){
-        tileno = i + 2;
+        tileno = i+2;
         release_mem_region((BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);
         release_mem_region((BASE_MMU | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);
         release_mem_region((BASE_DREAM | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y)), PG_SIZE);

@@ -177,14 +177,19 @@ uint64_t dec_def_flush_tlb (uint64_t tile) {
   return res;
 }
 
-void dec_flush_tlb (struct mmu_notifier *mn, struct mm_struct *mm,
-				                            unsigned long start, unsigned long end){
+int invalidate_tlb_start (struct mmu_notifier *mn, const struct mmu_notifier_range *range){
   PRINTBT
+  printk("MMU flush called at: %llx and %llx\n", range->start, range->end);
    // --> configure THIS to include the tile # smhow
   uint64_t res = *(volatile uint64_t*)(tlb_flush | mmub[0]); 
 #ifdef PRI
   printk("Dec flush tlb results:\n %llx", res);
 #endif
+  return 0;
+}
+
+void invalidate_tlb_end (struct mmu_notifier *mn, const struct mmu_notifier_range *range){
+
 }
 
 // CONFIG THE PAGE TABLE BASE OF THE TLB
@@ -335,7 +340,7 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   // SET THE LAYOUT OF TILES TO TARGET
   uint32_t i;
   for (i = 0; i < num_tiles; i++){
-    tileno = i + 2;
+    tileno = i+2;
     base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y);
     mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 
     dream_base[i] = BASE_DREAM  | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 

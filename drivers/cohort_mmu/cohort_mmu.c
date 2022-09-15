@@ -29,9 +29,12 @@ MODULE_AUTHOR("Nazerke Turtayeva <nturtayeva@ucsb.edu>");
 /////////////
 
 static int irq[MAX_COHORT_TILE];
+static int irq_cnt;
 static struct mm_struct *curr_mm;
+// static struct 
 static const struct mmu_notifier_ops iommu_mn = {
-	.invalidate_range       = dec_flush_tlb,
+	.invalidate_range_start = invalidate_tlb_start,
+	.invalidate_range_end   = invalidate_tlb_end,
 };
 
 static struct mmu_notifier mn = {
@@ -42,13 +45,38 @@ static struct mmu_notifier mn = {
 // Function Definitions //
 //////////////////////////
 
+/**
+ * copied from xilinx_emaclite.c
+ * get_bool - Get a parameter from the OF device
+ * @ofdev:	Pointer to OF device structure
+ * @s:		Property to be retrieved
+ *
+ * This function looks for a property in the device node and returns the value
+ * of the property if its found or 0 if the property is not found.
+ *
+ * Return:	Value of the parameter if the parameter is found, or 0 otherwise
+ */
+static bool get_bool(struct platform_device *ofdev, const char *s)
+{
+	u32 *p = (u32 *)of_get_property(ofdev->dev.of_node, s, NULL);
+	printk("Actual val: %d, %llx, %d, %llx\n", p, p, *p, *p);
+
+	if (!p) {
+		dev_warn(&ofdev->dev, "Parameter %s not found, defaulting to false\n", s);
+		return false;
+	}
+
+	return (bool)*p;
+}
+
 // --> can we get a tile number from these codes?
 // --> tile arguments are fixed, change this later
-static irqreturn_t cohort_mmu_interrupt(int irq, void *dev_id){
+// --> modify for the copy from user logic
+static irqreturn_t cohort_mmu_interrupt(int irq_n, void *dev_id){
 	PRINTBT
 	pr_info("Cohort MMU Interrupt Entered!\n");
-	uint64_t res = dec_get_tlb_fault(0);
-    pr_info("Get Page Fault %llx and show irq %d\n", res, irq);
+	uint64_t res = dec_get_tlb_fault(irq_n%(irq[0]));
+    pr_info("Get Page Fault %llx and show irq %d at core %d\n", res, irq_n, irq_n%(irq[0]));
     
 	if (res != 0){
         uint32_t * ptr = (uint32_t *)(res & 0xFFFFFFFFF0);
@@ -91,24 +119,15 @@ EXPORT_SYMBOL(cohort_mn_register);
 
 static int cohort_mmu_probe(struct platform_device *ofdev)
 {	
-	pr_info("---> Cohort MMU Driver Probe v1.7 entered! %s\n", ofdev->resource->name);
+	pr_info("---> Cohort MMU Driver Probe v1.8 entered! %s\n", ofdev->resource->name);
 
 	struct device *dev = &ofdev->dev;
 	
 	dev_info(dev, "---> Cohort Device Structure extracted!\n");
 
-	/* Get IRQ for the device */
-	// struct resource *res;
-	// res = platform_get_resource(ofdev, IORESOURCE_IRQ, 0);
-	// if (!res) {
-	// 	dev_err(dev, "---> no IRQ found\n");
-	// 	return -1;
-	// }
-
-	// dev_info(dev, "---> Cohort IRQ res name: %s\n", res->name);
-
-	uint32_t irq_cnt = of_property_count_u32_elems(dev->of_node, "interrupts");
-	pr_info("IRQ Cnt: %d\n", irq_cnt);
+	irq_cnt = of_property_count_u32_elems(dev->of_node, "interrupts");
+	// irq_cnt = get_bool(ofdev, "ucsbarchlab,number-of-cohorts");
+	// pr_info("New IRQ Cnt: %d\n", irq_cnt);
 
 	// --> try using this function after of_property_count_u32:
 	// platform_irq_count
