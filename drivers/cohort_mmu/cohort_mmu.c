@@ -45,30 +45,6 @@ static struct mmu_notifier mn = {
 // Function Definitions //
 //////////////////////////
 
-/**
- * copied from xilinx_emaclite.c
- * get_bool - Get a parameter from the OF device
- * @ofdev:	Pointer to OF device structure
- * @s:		Property to be retrieved
- *
- * This function looks for a property in the device node and returns the value
- * of the property if its found or 0 if the property is not found.
- *
- * Return:	Value of the parameter if the parameter is found, or 0 otherwise
- */
-static bool get_bool(struct platform_device *ofdev, const char *s)
-{
-	u32 *p = (u32 *)of_get_property(ofdev->dev.of_node, s, NULL);
-	printk("Actual val: %d, %llx, %d, %llx\n", p, p, *p, *p);
-
-	if (!p) {
-		dev_warn(&ofdev->dev, "Parameter %s not found, defaulting to false\n", s);
-		return false;
-	}
-
-	return (bool)*p;
-}
-
 // --> can we get a tile number from these codes?
 // --> tile arguments are fixed, change this later
 // --> modify for the copy from user logic
@@ -126,13 +102,13 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 	dev_info(dev, "---> Cohort Device Structure extracted!\n");
 
 	irq_cnt = of_property_count_u32_elems(dev->of_node, "interrupts");
-	// irq_cnt = get_bool(ofdev, "ucsbarchlab,number-of-cohorts");
-	// ---> to check the following need to recompile the code again for more
-	// uint32_t irq_cnt2 = of_property_read_u32(dev->of_node, "ucsbarchlab,number-of-cohorts", &ucsbarchlab,number-of-cohorts);
-	// pr_info("New IRQ Cnt: %d\n", irq_cnt);
 
-	// --> try using this function after of_property_count_u32:
-	// platform_irq_count
+	uint32_t num_tiles;
+	uint32_t status = of_property_read_u32(dev->of_node, "ucsbarchlab,number-of-cohorts", &num_tiles);
+	if (status < 0) {
+			dev_err(dev, "---> Can't read the property\n");
+			return -1;
+	}
 
 	int retval;
 
@@ -164,21 +140,18 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 	for (j=0; j < irq_cnt; j++){
 		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES);
 		base[j] = devm_ioremap_resource(dev, res);
-		pr_info("base: %llx\n", base[j]);
 		if (IS_ERR(base[j])){
 			return PTR_ERR(base[j]);
 		}
 
 		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES+1);
 		mmub[j] = devm_ioremap_resource(dev, res);
-		pr_info("mmub: %llx\n", mmub[j]);
 		if (IS_ERR(mmub[j])){
 			return PTR_ERR(mmub[j]);
 		}
 
 		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES+2);
 		dream_base[j] = devm_ioremap_resource(dev, res);
-		pr_info("dream_base: %llx\n", dream_base[j]);
 		if (IS_ERR(dream_base[j])){
 			return PTR_ERR(dream_base[j]);
 		}
@@ -199,12 +172,6 @@ void cohort_mn_exit(void){
 	print_stats_fifos(1);
 
     cohort_off();
-
-	// int release_res = dealloc_tiles();
-
-	// if (release_res != 0){
-	// 	pr_info("Error at tile %d!\n", release_res - 1);
-	// }
 
 	mmu_notifier_unregister(&mn, curr_mm);
 
