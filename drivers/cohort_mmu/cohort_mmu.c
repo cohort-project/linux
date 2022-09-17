@@ -18,7 +18,7 @@
 
 #define DRIVER_NAME "cohort_mmu"
 #define MAX_COHORT_TILE 2
-
+#define NUM_OF_RES 3
 #include "cohort_mmu.h"
 
 MODULE_LICENSE("GPL v2");
@@ -127,6 +127,8 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 
 	irq_cnt = of_property_count_u32_elems(dev->of_node, "interrupts");
 	// irq_cnt = get_bool(ofdev, "ucsbarchlab,number-of-cohorts");
+	// ---> to check the following need to recompile the code again for more
+	// uint32_t irq_cnt2 = of_property_read_u32(dev->of_node, "ucsbarchlab,number-of-cohorts", &ucsbarchlab,number-of-cohorts);
 	// pr_info("New IRQ Cnt: %d\n", irq_cnt);
 
 	// --> try using this function after of_property_count_u32:
@@ -155,6 +157,34 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 		}
 	}
 
+	struct resource *res; 
+
+	// do an allocation and remap for every resource by each tile
+	uint32_t j;
+	for (j=0; j < irq_cnt; j++){
+		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES);
+		base[j] = devm_ioremap_resource(dev, res);
+		pr_info("base: %llx\n", base[j]);
+		if (IS_ERR(base[j])){
+			return PTR_ERR(base[j]);
+		}
+
+		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES+1);
+		mmub[j] = devm_ioremap_resource(dev, res);
+		pr_info("mmub: %llx\n", mmub[j]);
+		if (IS_ERR(mmub[j])){
+			return PTR_ERR(mmub[j]);
+		}
+
+		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES+2);
+		dream_base[j] = devm_ioremap_resource(dev, res);
+		pr_info("dream_base: %llx\n", dream_base[j]);
+		if (IS_ERR(dream_base[j])){
+			return PTR_ERR(dream_base[j]);
+		}
+
+	}
+
 	dev_info(dev, "---> Cohort Probe is successfully launched!\n");
 
 	return 0;
@@ -170,11 +200,11 @@ void cohort_mn_exit(void){
 
     cohort_off();
 
-	int release_res = dealloc_tiles();
+	// int release_res = dealloc_tiles();
 
-	if (release_res != 0){
-		pr_info("Error at tile %d!\n", release_res - 1);
-	}
+	// if (release_res != 0){
+	// 	pr_info("Error at tile %d!\n", release_res - 1);
+	// }
 
 	mmu_notifier_unregister(&mn, curr_mm);
 

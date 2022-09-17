@@ -25,7 +25,6 @@ void assert(int condition){
 #define DEBUG_NOT_INIT assert(!initialized);
 
 #include "dec_decoupling.h"
-#include "dcp_alloc.h"
 
 //////////////////////////////////////
 //// OPEN/CLOSE PRODUCER/CONSUMER////
@@ -303,61 +302,10 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   }
   assert (count); //check that count is bigger than 0
 #endif
-
-  switch(size)
-  { /* 32x4, 64x2, 128x1 are the ones that make the most sense*/
-      case DCP_SIZE_8:
-      case DCP_SIZE_16:
-      case DCP_SIZE_32: 
-          queues_per_tile = 1;
-          break;
-        
-      case DCP_SIZE_48: 
-      case DCP_SIZE_64: 
-          queues_per_tile = 1;
-          break;
-      /*
-      case DCP_SIZE_80: 
-      case DCP_SIZE_96:
-      case DCP_SIZE_128: 
-          queues_per_tile = 1;
-          queues_per_tile = 1;
-          break;
-      */
-      default:
-          queues_per_tile = 1;
-  }
-
-  uint32_t partial_tile = (count%queues_per_tile)>0;
-  uint32_t entire_tiles = count/queues_per_tile;
-  // ---> This should ideally be modified to the manycore case 
-  num_tiles = entire_tiles + partial_tile;
-
-  uint32_t allocated_tiles;
+  
+  uint32_t allocated_tiles = count;
   uint64_t conf_tlb_addr;
 
-  uint32_t tileno;
-  // SET THE LAYOUT OF TILES TO TARGET
-  uint32_t i;
-  for (i = 0; i < num_tiles; i++){
-    tileno = i+2;
-    base[i] = BASE_MAPLE | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y);
-    mmub[i] = BASE_MMU   | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 
-    dream_base[i] = BASE_DREAM  | ((tileno%WIDTH) << TILE_X) | ((tileno/WIDTH) << TILE_Y); 
-  }
-  allocated_tiles = num_tiles;
-
-#ifdef PRI
-  printk("Num of tiles is: %d\n", num_tiles);
-#endif
-
-  // ALLOCATE AND RESET TILE
-  allocated_tiles = (uint64_t)alloc_tile(num_tiles,base);
-  allocated_tiles = (uint64_t)alloc_tile(num_tiles,mmub);
-  allocated_tiles = (uint64_t)alloc_tile(num_tiles,dream_base);
-
-  if (!allocated_tiles) return 0;
-  
   // save page table base address
 	uint64_t virt_base = (uint64_t)(current->mm->pgd);
 
@@ -398,7 +346,7 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   uint32_t config_tiles = k;
   if (!res_producer_conf) config_tiles--;
 
-  config_loop_unit(config_tiles, A,B,op);
+  config_loop_unit(config_tiles,A,B,op);
 
   initialized = 1;
   uint32_t res = config_tiles*queues_per_tile;

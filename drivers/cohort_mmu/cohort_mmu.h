@@ -64,6 +64,7 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
     PRINTBT
 
     if (cohort_to_sw) {
+        // baremetal_write( 0, 3, head_ptr);
         baremetal_write( 0, 3, head_ptr);
         baremetal_write( 0, 4, meta_ptr);
         baremetal_write( 0, 5, tail_ptr);

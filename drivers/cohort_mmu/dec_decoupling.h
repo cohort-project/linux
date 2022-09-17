@@ -16,6 +16,8 @@
 #define BASE_DREAM 0xe100B00000
 #define BASE_NIBBL 0xe100C00000
 
+#define PG_SIZE ((unsigned long)(1 << 12))
+
 //static variables
 static uint32_t num_tiles;
 static volatile uint32_t initialized = 0;
