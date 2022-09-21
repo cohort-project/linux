@@ -45,23 +45,22 @@ static struct mmu_notifier mn = {
 // Function Definitions //
 //////////////////////////
 
-// --> can we get a tile number from these codes?
 // --> tile arguments are fixed, change this later
-// --> modify for the copy from user logic
+// --> need to check whether tile conversion is correct here
 static irqreturn_t cohort_mmu_interrupt(int irq_n, void *dev_id){
 	PRINTBT
 	pr_info("Cohort MMU Interrupt Entered!\n");
 	uint64_t res = dec_get_tlb_fault(irq_n%(irq[0]));
-    pr_info("Get Page Fault %llx and show irq %d at core %d\n", res, irq_n, irq_n%(irq[0]));
+	uint32_t tile_ind = irq_n%(irq[0]);
+    pr_info("Get Page Fault %llx and show irq %d at core %d\n", res, irq_n, tile_ind);
     
 	if (res != 0){
         uint32_t * ptr = (uint32_t *)(res & 0xFFFFFFFFF0);
         printk("T%llx\n",ptr);
-        dec_resolve_page_fault(0, (res & 0xF));
+        dec_resolve_page_fault(tile_ind, (res & 0xF));
         printk("R\n",res);
 		return IRQ_HANDLED;
     } else{
-		// --> check for the right error message
 		return -1;
 	}	
 };
