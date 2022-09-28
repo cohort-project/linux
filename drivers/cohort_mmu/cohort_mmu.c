@@ -65,7 +65,7 @@ static irqreturn_t cohort_mmu_interrupt(int irq_n, void *dev_id){
 	}	
 };
 
-void cohort_mn_register(uint64_t c_head, uint64_t p_head, uint64_t acc_addr){
+void cohort_mn_register(uint64_t c_head, uint64_t p_head, uint64_t acc_addr, uint64_t backoff_val){
 	PRINTBT
 	// Extract curr process details
 	struct mm_struct *mm; 
@@ -83,11 +83,11 @@ void cohort_mn_register(uint64_t c_head, uint64_t p_head, uint64_t acc_addr){
 	init_tile(num);
  
 	// Fill the fifo_ctrl_t struct members
-	cohort_on(c_head, p_head, acc_addr);
+	cohort_on(c_head, p_head, acc_addr, backoff_val);
 	
 	// Open the comm-n with DEC queues to extract useful stats
-	dec_open_producer(0);
-	dec_open_consumer(0);
+	// dec_open_producer(0);
+	// dec_open_consumer(0);
 	
 }
 EXPORT_SYMBOL(cohort_mn_register);
@@ -137,11 +137,11 @@ static int cohort_mmu_probe(struct platform_device *ofdev)
 	// do an allocation and remap for every resource by each tile
 	uint32_t j;
 	for (j=0; j < irq_cnt; j++){
-		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES);
-		base[j] = devm_ioremap_resource(dev, res);
-		if (IS_ERR(base[j])){
-			return PTR_ERR(base[j]);
-		}
+		// res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES);
+		// base[j] = devm_ioremap_resource(dev, res);
+		// if (IS_ERR(base[j])){
+		// 	return PTR_ERR(base[j]);
+		// }
 
 		res = platform_get_resource(ofdev, IORESOURCE_MEM, j*NUM_OF_RES+1);
 		mmub[j] = devm_ioremap_resource(dev, res);
@@ -166,9 +166,9 @@ void cohort_mn_exit(void){
 	PRINTBT
 
 	// Close the queues and extract numbers
-	dec_close_producer(0);
-	dec_close_consumer(0);
-	print_stats_fifos(1);
+	// dec_close_producer(0);
+	// dec_close_consumer(0);
+	// print_stats_fifos(1);
 
     cohort_off();
 

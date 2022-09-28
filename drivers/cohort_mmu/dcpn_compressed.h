@@ -5,11 +5,11 @@ void assert(int condition){
     }
 }
 
+#define PRINTBT
+
 // #ifndef PRINTBT
 // #define PRINTBT printk("[KERNEL] %s\n", __func__);
 // #endif
-
-#define PRINTBT
 
 // #ifndef PRINT_ADDR
 // #define PRINT_ADDR;
@@ -324,29 +324,29 @@ int32_t dec_fifo_init_conf(uint32_t count, uint32_t size, void * A, void * B, ui
   }
 
   //printDebug(dec_fifo_debug(0,2));
-  dec_fifo_cleanup(allocated_tiles);
+  // dec_fifo_cleanup(allocated_tiles);
   __sync_synchronize(); //Compiler should not reorder the next load
   //printDebug(dec_fifo_debug(0,2));
   uint32_t k = 0;
   uint32_t res_producer_conf;
   do { // Do the best allocation based on the number of tiles!
     // INIT_TILE: Target to allocate "len" queues per Tile
-    uint64_t addr_maple = (base[k] | (size << FIFO));
-    res_producer_conf = *(volatile uint32_t*)addr_maple;
-#ifdef PRI
-    printk("Target MAPLE %d: address %llx\n", k, (uint32_t*)addr_maple);
-    printk("Target MAPLE %d: res %d, now config TLB\n", k, res_producer_conf);
-#endif
+//     uint64_t addr_maple = (base[k] | (size << FIFO));
+//     res_producer_conf = *(volatile uint32_t*)addr_maple;
+// #ifdef PRI
+//     printk("Target MAPLE %d: address %llx\n", k, (uint32_t*)addr_maple);
+//     printk("Target MAPLE %d: res %d, now config TLB\n", k, res_producer_conf);
+// #endif
 
     dec_set_tlb_ptbase(k, conf_tlb_addr);
 
     k++;
-  } while (k < allocated_tiles && res_producer_conf > 0);
+  } while (k < allocated_tiles);
   // count configured tiles
   uint32_t config_tiles = k;
-  if (!res_producer_conf) config_tiles--;
+  // if (!res_producer_conf) config_tiles--;
 
-  config_loop_unit(config_tiles,A,B,op);
+  // config_loop_unit(config_tiles,A,B,op);
 
   initialized = 1;
   uint32_t res = config_tiles*queues_per_tile;

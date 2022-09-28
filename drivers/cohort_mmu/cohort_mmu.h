@@ -31,7 +31,7 @@
 #endif
 
 #ifndef WAIT_COUNTER_VAL 
-#define WAIT_COUNTER_VAL 32
+#define WAIT_COUNTER_VAL 1
 #endif
 
 #ifndef BACKOFF_COUNTER_VAL
@@ -53,7 +53,7 @@ void fifo_start(uint64_t head_ptr, uint64_t meta_ptr, uint64_t tail_ptr, bool co
 void baremetal_write(uint32_t tile, uint64_t addr, uint64_t value);
 uint64_t uncached_read(uint32_t tile, uint64_t addr);
 
-void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr);
+void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr, uint64_t backoff_val);
 void cohort_off(void);
 void cohort_stop_monitors(void);
 void cohort_print_monitors(void);
@@ -101,7 +101,7 @@ uint64_t uncached_read(uint32_t tile, uint64_t addr){
     return read_val;
 }
 
-void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr)
+void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr, uint64_t backoff_val)
 {   
     PRINTBT
     // Send queue addresses
@@ -134,7 +134,7 @@ void cohort_on(uint64_t c_head, uint64_t p_head, uint64_t acc_addr)
     uint64_t serialization_value_mon = SERIALIZATION_VAL;
     uint64_t deserialization_value_mon = DESERIALIZATION_VAL;
     uint64_t wait_counter_mon = WAIT_COUNTER_VAL;
-    uint64_t backoff_counter_mon = BACKOFF_COUNTER_VAL;
+    uint64_t backoff_counter_mon = backoff_val;
 
     write_value_mon |= backoff_counter_mon << 48;
     write_value_mon |= serialization_value_mon << 32;
