@@ -9,6 +9,8 @@
 #include <asm/unistd.h>
 #include <asm/cacheflush.h>
 #include <asm/io.h>
+#include <linux/sched/mm.h>
+#include "../drivers/cohort_mmu/cohort_syscall.h"
 
 static long riscv_sys_mmap(unsigned long addr, unsigned long len,
 			   unsigned long prot, unsigned long flags,
@@ -67,10 +69,30 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
 	return 0;
 }
 
+#ifdef CONFIG_COHORT_MMU
+SYSCALL_DEFINE4(riscv_conf_iommu, uint64_t, c_head, uint64_t, p_head, uint64_t, acc_ptr, uint64_t, backoff_val) {
+
+	// printk("Cohort MMU syscall entered! \n");
+
+	// Call a driver for the curr proc
+	cohort_mn_register(c_head, p_head, acc_ptr, backoff_val);
+
+    return 0;
+}
+
+SYSCALL_DEFINE0(riscv_conf_iommu_exit) {
+    // printk("Cohort MMU EXIT syscall entered! \n");
+	cohort_mn_exit();
+
+    return 0;
+}
+
+#else
 SYSCALL_DEFINE0(riscv_conf_iommu) {
     uint64_t base = (uint64_t)(current->mm->pgd);
     printk("PT base address %llx\n", base);
     uint64_t phy_base = virt_to_phys((void *)base);
-    printk("PT physical base address %lx\n", base);
+    printk("PT physical base address %llx\n", phy_base);
     return phy_base;
 }
+#endif

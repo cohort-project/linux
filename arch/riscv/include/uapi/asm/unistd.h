@@ -46,3 +46,10 @@ __SYSCALL(__NR_riscv_flush_icache, sys_riscv_flush_icache)
 #define __NR_riscv_conf_iommu (__NR_arch_specific_syscall + 14)
 #endif
 __SYSCALL(__NR_riscv_conf_iommu, sys_riscv_conf_iommu)
+
+#ifdef CONFIG_COHORT_MMU
+#ifndef __NR_riscv_conf_iommu_exit
+#define __NR_riscv_conf_iommu_exit (__NR_arch_specific_syscall + 13)
+#endif
+__SYSCALL(__NR_riscv_conf_iommu_exit, sys_riscv_conf_iommu_exit)
+#endif
