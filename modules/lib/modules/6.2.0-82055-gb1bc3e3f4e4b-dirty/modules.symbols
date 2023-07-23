@@ -1,0 +1,2 @@
+# Aliases for symbols, used by symbol_request().
+alias symbol:gretap_fb_dev_create ip_gre

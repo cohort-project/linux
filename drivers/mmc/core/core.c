@@ -1120,9 +1120,18 @@ u32 mmc_select_voltage(struct mmc_host *host, u32 ocr)
 		"card claims to support voltages below defined range\n");
 		ocr &= ~0x7F;
 	}
-
+	pr_info("ocr before %x\n", ocr);
 	ocr &= host->ocr_avail;
+
+	pr_info("dev_name %s\n", dev_name(mmc_dev(host)));
+	pr_info("host->ocr_avail %x\n", host->ocr_avail);
+	pr_info("host->ocr_avail_sdio %x\n", host->ocr_avail_sdio);
+	pr_info("host->ocr_avail_sd %x\n", host->ocr_avail_sd);
+	pr_info("host->ocr_avail_mmc %x\n", host->ocr_avail_mmc);
+	pr_info("ocr %x\n", ocr);
 	if (!ocr) {
+		pr_info("host->ocr_avail %x\n", host->ocr_avail);
+		pr_info("ERROR ocr %x\n", ocr);
 		dev_warn(mmc_dev(host), "no support for card's volts\n");
 		return 0;
 	}

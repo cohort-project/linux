@@ -1,0 +1,8 @@
+# Aliases extracted from modules themselves.
+alias fs-efivarfs efivarfs
+alias netdev-erspan0 ip_gre
+alias netdev-gretap0 ip_gre
+alias netdev-gre0 ip_gre
+alias rtnl-link-erspan ip_gre
+alias rtnl-link-gretap ip_gre
+alias rtnl-link-gre ip_gre
