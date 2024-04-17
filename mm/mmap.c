@@ -1454,7 +1454,29 @@ unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 			return PTR_ERR(file);
 	}
 
+	if (flags & MAP_HWDP) {
+		// Set up page
+		struct page *pte_page;
+		unsigned long pfn;
+		pgprot_t prot_bits = __pgprot(prot & _PAGE_HWDP);
+		pte_t *ptep_new;
+
+		// gfp_mask flags tells the allocator how it may behave
+		// order is the power of two number of pages to allocate
+		// pte_page = alloc_page(GFP_KERNEL);
+		pte_page = alloc_pages(GFP_KERNEL | __GFP_ZERO, get_order(len));
+		if (!pte_page)
+			return -ENOMEM;
+
+		ptep_new = (pte_t *)page_address(pte_page);
+		pfn = page_to_pfn(pte_page);
+		set_pte(ptep_new, pfn_pte(pfn, prot_bits));
+		addr = page_to_virt(pte_page);
+
+	} 
 	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff);
+	
+
 out_fput:
 	if (file)
 		fput(file);

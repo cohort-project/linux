@@ -76,7 +76,12 @@ typedef struct {
  * | 63 | 62 61 | 60 54 | 53  10 | 9             8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
  *   N      MT     RSV    PFN      reserved for SW   D   A   G   U   X   W   R   V
  */
-#define _PAGE_PFN_MASK  GENMASK(53, 10)
+#define _PAGE_PFN_MASK  GENMASK(54, 10)
+
+/*
+ * [54]         Page resides in external storage
+ */
+#define _PAGE_HWDP      (1UL << 54)   /* Page resides in external storage, RV64 ONLY */
 
 /*
  * [62:61] Svpbmt Memory Type definitions:
@@ -134,7 +139,7 @@ static inline u64 riscv_page_io(void)
 #define _PAGE_CHG_MASK  (~(unsigned long)(_PAGE_PRESENT | _PAGE_READ |	\
 					  _PAGE_WRITE | _PAGE_EXEC |	\
 					  _PAGE_USER | _PAGE_GLOBAL |	\
-					  _PAGE_MTMASK))
+					  _PAGE_HWDP | _PAGE_MTMASK))
 
 static inline int pud_present(pud_t pud)
 {
@@ -227,6 +232,16 @@ static inline unsigned long _pmd_pfn(pmd_t pmd)
 }
 
 #define mk_pmd(page, prot)    pfn_pmd(page_to_pfn(page), prot)
+
+static inline unsigned long pmd_hwdp(pmd_t pmd)
+{
+	return pmd_val(pmd) & _PAGE_HWDP;
+}
+
+static inline pmd_t pmd_mkhwdp(pmd_t pmd)
+{
+	return __pmd(pmd_val(pmd) | _PAGE_HWDP);
+}
 
 #define pmd_ERROR(e) \
 	pr_err("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
