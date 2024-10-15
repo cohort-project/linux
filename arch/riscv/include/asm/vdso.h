@@ -34,6 +34,4 @@
 
 #endif /* CONFIG_MMU */
 
-asmlinkage void sys_riscv_conf_iommu(void);
-
 #endif /* _ASM_RISCV_VDSO_H */
