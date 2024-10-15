@@ -43,3 +43,4 @@
 #define __NR_riscv_flush_icache (__NR_arch_specific_syscall + 15)
 #endif
 __SYSCALL(__NR_riscv_flush_icache, sys_riscv_flush_icache)
+__SYSCALL(__NR_riscv_conf_iommu, sys_riscv_conf_iommu)
